@@ -1,0 +1,12 @@
+# Candle's quantized Q8_0 CPU kernels use AVX2/FMA only when enabled at
+# compile time; without this, Q8 inference on x86_64 is about 10x slower than FP32.
+# x86-64-v3 (AVX2/FMA/F16C, Haswell 2013+ / Zen) is required to run the binary.
+[target.'cfg(target_arch = "x86_64")']
+rustflags = ["-C", "target-cpu=x86-64-v3"]
+
+# Candle's quantized NEON kernels use `sdot` only when dotprod is enabled at
+# compile time; Linux aarch64 defaults to plain armv8.0 (Apple targets already
+# have it). Requires ARMv8.2+dotprod: Graviton2+, Ampere, Grace, DGX Spark, Apple M.
+# engine/src/qgemm.rs picks i8mm or sdot at runtime either way.
+[target.'cfg(target_arch = "aarch64")']
+rustflags = ["-C", "target-feature=+dotprod"]
