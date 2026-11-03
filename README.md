@@ -110,6 +110,14 @@ The engine has its own kernels for each platform. Compared with the stock Candle
 kernels, Q8 is about 2x faster on x86, 3x faster on Arm and 2x faster on Metal. On
 M4 Pro, Metal is about 4x faster than the CPU.
 
+The engine is not generally faster than plain PyTorch. Measured on M4 Pro only, with
+engine Q8 against PyTorch FP32:
+
+- **Engine:** short commands run about 1.7x faster on the GPU. Startup is about 4x faster,
+  the install is about 8x smaller and memory use is about half.
+- **PyTorch:** long inputs run faster once the model is loaded, for example 34 ms against
+  47 ms on the GPU at 257–512 tokens.
+
 ## Quality and limits
 
 | Model | F1, shell commands | F1, actions |
