@@ -2,7 +2,7 @@
 # acclass installer: prebuilt engine + model into ~/.acclass. Needs Python 3.
 #   curl -fsSL https://github.com/jensilo/acclass/releases/latest/download/install.sh | sh                   # Q8 model (default)
 #   curl -fsSL https://github.com/jensilo/acclass/releases/latest/download/install.sh | sh -s -- --model q5  # smaller model
-# Run with --help for all options (other model, manifest pin, rollback, uninstall).
+# Run with --help for all options (other model, CUDA, manifest pin, rollback, uninstall).
 set -eu
 umask 077
 command -v python3 >/dev/null 2>&1 || { echo 'acclass install: Python 3 is required' >&2; exit 1; }
@@ -228,6 +228,9 @@ class Lock:
 
 def install(args, home):
     target = detect_platform()
+    if args.cuda:
+        require(target == 'linux-aarch64', f'no prebuilt CUDA binary for {target}; build from source (docs/releasing.md)')
+        target += '-cuda'
     home.mkdir(parents=True, exist_ok=True)
     managed_links(home)
     with Lock(home), tempfile.TemporaryDirectory(prefix='.staging-', dir=home) as scratch:
@@ -257,7 +260,8 @@ def install(args, home):
                                  timeout=30).stdout.strip()
         except OSError as error:
             raise Fail(f'engine does not run on this machine: {error}') from None
-        require(out == f'acclass {version}', f'engine does not run on this machine (got {out!r})')
+        hint = '; it needs glibc 2.39 and CUDA 13 libraries' if args.cuda else ''
+        require(out == f'acclass {version}', f'engine does not run on this machine (got {out!r}){hint}')
         shutil.copyfile(manifest_path, stage / 'release.json')
         (stage / 'INSTALLATION.json').write_text(json.dumps({
             'schema': 'acclass-installation/2', 'version': version, 'model': args.model, 'platform': target,
@@ -340,6 +344,8 @@ def main():
     parser.add_argument('--model', choices=['q8', 'q5', 'fp32'], default='q8',
                         help='q8: default (152 MiB); q5: smaller (98 MiB); '
                              'fp32: full weights for further training (571 MiB; serve with --quant f32)')
+    parser.add_argument('--cuda', action='store_true',
+                        help='CUDA engine for Linux aarch64 (NVIDIA GB10); needs CUDA 13 libraries')
     parser.add_argument('--version', default=VERSION, help=f'release version (default {VERSION})')
     parser.add_argument('--manifest', help='HTTPS release.json URL (overrides --version)')
     parser.add_argument('--manifest-sha256', help='independently trusted SHA-256 of release.json')

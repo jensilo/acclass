@@ -38,8 +38,10 @@ engine/target/release/acclass serve --model model
 older CPU, change these flags. Quantized CPU inference is then slower. There are no
 prebuilt binaries for older CPUs.
 
-macOS builds enable Metal. CUDA is optional. To use it, add `--features cuda` and use a
-compatible CUDA toolchain. See [device selection](architecture.md#devices).
+macOS builds enable Metal. The release has a CUDA engine for Linux aarch64: install with
+`--cuda`. It needs glibc 2.39 or newer and CUDA 13 libraries, and it does not include NVIDIA
+files. For other CUDA systems, build from source: add `--features cuda` and use a compatible
+CUDA toolchain. See [device selection](architecture.md#devices).
 
 ## Verify a release
 
@@ -47,7 +49,7 @@ A release has these files, with no folders:
 
 - `release.json` (the manifest), `install.sh` and `SHA256SUMS`
 - `acclass-VERSION-PLATFORM.tar.gz`, where `PLATFORM` is `linux-x86_64`,
-  `linux-aarch64` or `macos-arm64`
+  `linux-aarch64`, `linux-aarch64-cuda` or `macos-arm64`
 - Model files with the prefix `q8-`, `q5-` or `fp32-`
 
 To check downloaded files:

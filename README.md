@@ -6,8 +6,9 @@ action description. It predicts what the action does. It does not run the action
 It predicts effects, not permission. It is not a sandbox and it does not guarantee
 safety. Use it as one input to your own policy or review step.
 
-**About 50 ms per command on a laptop x86 CPU, with a model under 100 MiB.** It runs
-locally. It needs no GPU and no network. See [performance](#performance).
+**About 50 ms per command on a laptop x86 CPU and about 4 ms on an NVIDIA DGX Spark, with
+a model under 100 MiB.** It runs locally. It needs no GPU and no network. See
+[performance](#performance).
 
 | Label | The action ... |
 | --- | --- |
@@ -44,6 +45,7 @@ sh install.sh
 | Linux x86_64 | x86-64-v3 CPU (AVX2/FMA), glibc 2.31 or newer |
 | Linux aarch64 | ARM dot-product support, glibc 2.31 or newer |
 | macOS arm64 | macOS 11 or newer; tested on 26.7.1 |
+| Linux aarch64 with CUDA | `--cuda`, glibc 2.39 or newer, CUDA 13 libraries; tested on NVIDIA DGX Spark |
 
 Choose a model with `--model`, for example `sh -s -- --model q5` after the pipe:
 
@@ -54,7 +56,9 @@ Choose a model with `--model`, for example `sh -s -- --model q5` after the pipe:
 | `fp32` | 571 MiB | Full weights. Start it with `acclass serve --quant f32`. |
 
 The script installs into `~/.acclass`. It downloads over HTTPS and checks sizes and
-SHA-256 hashes. Other options: `--rollback`, `--uninstall`, `--manifest-sha256`.
+SHA-256 hashes. Other options: `--cuda`, `--rollback`, `--uninstall`, `--manifest-sha256`.
+The CUDA engine does not include NVIDIA files. Install CUDA first. Other CUDA systems
+need a [build from source](docs/releasing.md).
 See [release verification](docs/releasing.md).
 
 ## Use
@@ -92,15 +96,15 @@ Time for one model pass with Q8, median / 95th percentile:
 
 | Hardware | Device | Time |
 | --- | --- | --- |
+| NVIDIA DGX Spark (GB10) | CUDA | 4.2 / 16 ms |
 | Apple M4 Pro | Metal | 6.5 / 50 ms |
 | Apple M4 Pro | CPU, 8 threads | 25 / 131 ms |
 | Arm Cortex-X925 | CPU, 8 threads | 21 / 326 ms |
 | AMD Ryzen 5 6650U (x86) | CPU, 6 threads | 50 / 717 ms |
-| NVIDIA GB10 | CUDA, up to 16 tokens | 4.2 ms (median) |
 
-Most commands are short. Long inputs cause the 95th percentile. The CUDA build needs
-a build from source; other Apple and x86 chips are not measured. After 2 seconds
-idle, the first short command on M4 Pro takes about 25 ms on Metal.
+Most commands are short. Long inputs cause the 95th percentile. Other Apple and x86 chips
+are not measured. After 2 seconds idle, a short command takes about 6 ms on the DGX Spark
+and about 25 ms on M4 Pro Metal. A maximum-length input takes about 85 ms on the DGX Spark.
 
 The engine has its own kernels for each platform. Compared with the stock Candle
 kernels, Q8 is about 2x faster on x86, 3x faster on Arm and 2x faster on Metal. On

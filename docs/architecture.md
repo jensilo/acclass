@@ -57,7 +57,8 @@ hash in `model_contract.json`.
 ## Devices
 
 CPU inference uses Candle with custom quantized matrix and attention kernels. macOS
-builds include Metal. CUDA is an optional build feature.
+builds include Metal. CUDA is an optional build feature. The release has a CUDA engine for
+Linux aarch64.
 
 | `--device` | Behaviour |
 | --- | --- |

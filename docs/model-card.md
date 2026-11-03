@@ -101,20 +101,20 @@ evaluation rows, which is 34,137 decisions.
 
 These values cover one model pass, one request at a time, without tokenizer or socket time.
 They are rough values from shared machines. Your values can differ. Values are median / 95th
-percentile, in ms. Apple values use this model. The others use an earlier model with the same
-architecture.
+percentile, in ms. Apple and GB10 values use this model. The others use an earlier model with
+the same architecture.
 
 | Hardware | FP32 | Q8 | Q5 |
 | --- | --- | --- | --- |
+| NVIDIA GB10 (DGX Spark), CUDA | 7.9 / 24 | 4.2 / 16 | 4.2 / 16 |
 | Apple M4 Pro, Metal | 8.5 / 53 | 6.5 / 50 | 6.9 / 53 |
 | Apple M4 Pro, CPU, 8 threads | 43 / 228 | 25 / 131 | 24 / 130 |
 | Arm Cortex-X925, CPU, 8 threads | 76 / 438 | 21 / 326 | 21 / 222 |
 | AMD Ryzen 5 6650U, CPU, 6 threads | 66 / 760 | 50 / 717 | 51 / 544 |
-| NVIDIA GB10, CUDA, up to 16 tokens (median) | 4.8 | 4.2 | not measured |
-| NVIDIA GB10, CUDA, about 1,800 tokens (median) | 102 | 77 | not measured |
 
-CUDA needs a build from source. After 2 seconds idle, a short command on M4 Pro takes about
-25 ms on Metal and 42 ms on the CPU with Q8. Other Apple chips are not measured.
+After 2 seconds idle, a short command with Q8 takes about 6 ms on GB10, 25 ms on M4 Pro Metal
+and 42 ms on the M4 Pro CPU. A 2,048-token input with Q8 takes about 85 ms on GB10. The prebuilt
+CUDA engine is tested only on GB10. Other Apple chips are not measured.
 
 ## Limits
 

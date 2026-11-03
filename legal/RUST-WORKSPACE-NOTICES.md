@@ -9,6 +9,7 @@ Exact duplicate files are referenced once. Cached sibling-package texts are reus
 | Package | Repository | Packaged commit | `path_in_vcs` | Verified workspace reference |
 | --- | --- | --- | --- | --- |
 | `block2 0.6.2` | `https://github.com/madsmtm/objc2` | `b4167b582b2f75f9a1be75495c41b765344fd03c` | `crates/block2` | Objective-C workspace statement below; terms/copyright gap remains |
+| `candle-kernels 0.11.0` | `https://github.com/huggingface/candle` | `31f35b147389700ed2a178ee66a91c3cc25cc80d` | `candle-kernels` | Candle and ug root licenses below |
 | `candle-metal-kernels 0.11.0` | `https://github.com/huggingface/candle` | `31f35b147389700ed2a178ee66a91c3cc25cc80d` | `candle-metal-kernels` | Candle and ug root licenses below |
 | `candle-nn 0.11.0` | `https://github.com/huggingface/candle` | `31f35b147389700ed2a178ee66a91c3cc25cc80d` | `candle-nn` | Candle and ug root licenses below |
 | `candle-ug 0.11.0` | `https://github.com/huggingface/candle` | `31f35b147389700ed2a178ee66a91c3cc25cc80d` | `candle-ug` | Candle and ug root licenses below |
@@ -21,6 +22,7 @@ Exact duplicate files are referenced once. Cached sibling-package texts are reus
 | `pulp-wasm-simd-flag 0.1.1` | `https://github.com/sarah-quinones/pulp/` | `5eb07fd7b68edf0a5e19f71737d315f72a510295` | `pulp-wasm-simd-flag` | Pulp root license below |
 | `r-efi 5.3.0` | `https://github.com/r-efi/r-efi` | `97b55bed1c2c91dcbf787674849f05337ff80b33` | empty (repository root) | r-efi AUTHORS below |
 | `ug 0.5.0` | `https://github.com/LaurentMazare/ug` | `8c6dd50d6e96a22db70e1462c0e49d0cda8294f7` | `ug-core` | Candle and ug root licenses below |
+| `ug-cuda 0.5.0` | `https://github.com/LaurentMazare/ug` | `8c6dd50d6e96a22db70e1462c0e49d0cda8294f7` | `ug-cuda` | Candle and ug root licenses below |
 | `ug-metal 0.5.0` | `https://github.com/LaurentMazare/ug` | `8c6dd50d6e96a22db70e1462c0e49d0cda8294f7` | `ug-metal` | Candle and ug root licenses below |
 | `windows-link 0.2.1` | `https://github.com/microsoft/windows-rs` | `d468916ac27a36fb8a12bafc1bf5c0ec2fe92238` | `crates/libs/link` | Windows root licenses below |
 | `windows-sys 0.61.2` | `https://github.com/microsoft/windows-rs` | `32c3144490c016fe496a0aed769bce60987a2e9d` | `crates/libs/sys` | Windows root licenses below |

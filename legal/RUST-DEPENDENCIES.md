@@ -1,6 +1,6 @@
 # Rust dependency notices
 
-> Snapshot of the resolved Cargo dependency graph for `engine/Cargo.toml`, including target-specific and build dependencies, obtained with `cargo metadata --manifest-path engine/Cargo.toml --locked --offline --format-version 1`. The initial registry collection used only the existing local Cargo cache. A bounded follow-up fetched official upstream license/notice files at packaged `.cargo_vcs_info.json` commits; source URLs, commits, package paths, deduplicated texts, and remaining gaps are recorded in `RUST-WORKSPACE-NOTICES.md`. No installation or upstream code execution was used.
+> Snapshot of the resolved Cargo dependency graph for `engine/Cargo.toml`, including target-specific and build dependencies, obtained with `cargo metadata --manifest-path engine/Cargo.toml --locked --offline --format-version 1`. The initial registry collection used only the existing local Cargo cache. A bounded follow-up fetched official upstream license/notice files at packaged `.cargo_vcs_info.json` commits; source URLs, commits, package paths, deduplicated texts, and remaining gaps are recorded in `RUST-WORKSPACE-NOTICES.md`. No installation or upstream code execution was used. The table also lists the crates that only the `cuda` feature adds: `candle-kernels`, `cudarc` and `ug-cuda`. The CUDA engine links NVIDIA libraries dynamically; the archive does not include them.
 
 This is a notice collection, not legal advice, a complete determination of obligations, or legal certification. Cargo license declarations are reproduced as metadata, not independently validated. Each crate retains its own license. Exact duplicate upstream files are included once below, with all packages that supplied that identical file listed. Different file contents are kept separately, including differing copyright notices.
 
@@ -23,6 +23,7 @@ This is a notice collection, not legal advice, a complete determination of oblig
 | `bytemuck_derive` | `1.12.1` | crates.io | `Zlib OR Apache-2.0 OR MIT` | LICENSE-APACHE, LICENSE-MIT, LICENSE-ZLIB |
 | `byteorder` | `1.5.0` | crates.io | `Unlicense OR MIT` | COPYING, LICENSE-MIT |
 | `candle-core` | `0.11.0` | crates.io | `MIT OR Apache-2.0` | LICENSE |
+| `candle-kernels` | `0.11.0` | crates.io | `MIT OR Apache-2.0` | Verified workspace LICENSE-APACHE, LICENSE-MIT: `RUST-WORKSPACE-NOTICES.md`, Candle and ug root licenses |
 | `candle-metal-kernels` | `0.11.0` | crates.io | `MIT OR Apache-2.0` | Verified workspace LICENSE-APACHE, LICENSE-MIT: `RUST-WORKSPACE-NOTICES.md`, Candle and ug root licenses |
 | `candle-nn` | `0.11.0` | crates.io | `MIT OR Apache-2.0` | Verified workspace LICENSE-APACHE, LICENSE-MIT: `RUST-WORKSPACE-NOTICES.md`, Candle and ug root licenses |
 | `candle-ug` | `0.11.0` | crates.io | `MIT OR Apache-2.0` | Verified workspace LICENSE-APACHE, LICENSE-MIT: `RUST-WORKSPACE-NOTICES.md`, Candle and ug root licenses |
@@ -41,6 +42,8 @@ This is a notice collection, not legal advice, a complete determination of oblig
 | `crossbeam-utils` | `0.8.23` | crates.io | `MIT OR Apache-2.0` | LICENSE-APACHE, LICENSE-MIT |
 | `crunchy` | `0.2.4` | crates.io | `MIT` | LICENSE |
 | `crypto-common` | `0.1.7` | crates.io | `MIT OR Apache-2.0` | LICENSE-APACHE, LICENSE-MIT |
+| `cudarc` | `0.17.8` | crates.io | `MIT OR Apache-2.0` | LICENSE-APACHE, LICENSE-MIT |
+| `cudarc` | `0.19.10` | crates.io | `MIT OR Apache-2.0` | LICENSE-APACHE, LICENSE-MIT |
 | `daachorse` | `3.0.3` | crates.io | `MIT OR Apache-2.0` | LICENSE-APACHE, LICENSE-MIT |
 | `darling` | `0.20.11` | crates.io | `MIT` | LICENSE |
 | `darling_core` | `0.20.11` | crates.io | `MIT` | LICENSE |
@@ -194,6 +197,7 @@ This is a notice collection, not legal advice, a complete determination of oblig
 | `typed-path` | `0.12.3` | crates.io | `MIT OR Apache-2.0` | LICENSE-APACHE, LICENSE-MIT |
 | `typenum` | `1.20.1` | crates.io | `MIT OR Apache-2.0` | LICENSE, LICENSE-APACHE, LICENSE-MIT |
 | `ug` | `0.5.0` | crates.io | `MIT OR Apache-2.0` | Verified workspace LICENSE-APACHE, LICENSE-MIT: `RUST-WORKSPACE-NOTICES.md`, Candle and ug root licenses |
+| `ug-cuda` | `0.5.0` | crates.io | `MIT OR Apache-2.0` | Verified workspace LICENSE-APACHE, LICENSE-MIT: `RUST-WORKSPACE-NOTICES.md`, Candle and ug root licenses |
 | `ug-metal` | `0.5.0` | crates.io | `MIT OR Apache-2.0` | Verified workspace LICENSE-APACHE, LICENSE-MIT: `RUST-WORKSPACE-NOTICES.md`, Candle and ug root licenses |
 | `unicode-ident` | `1.0.26` | crates.io | `(MIT OR Apache-2.0) AND Unicode-3.0` | LICENSE-APACHE, LICENSE-MIT, LICENSE-UNICODE |
 | `unicode-normalization-alignments` | `0.1.12` | crates.io | `MIT/Apache-2.0` | LICENSE-APACHE, LICENSE-MIT, COPYRIGHT |
@@ -230,7 +234,7 @@ Contents below are verbatim copies of locally supplied `LICENSE*`, `LICENCE*`, `
 
 ### Upstream text 1: `LICENSE-APACHE`
 
-Identical file supplied by: `ahash 0.8.12` (LICENSE-APACHE), `autocfg 1.5.1` (LICENSE-APACHE), `base64 0.13.1` (LICENSE-APACHE), `bitflags 1.3.2` (LICENSE-APACHE), `bitflags 2.13.2` (LICENSE-APACHE), `bumpalo 3.20.3` (LICENSE-APACHE), `cc 1.5.1` (LICENSE-APACHE), `cfg-if 1.0.5` (LICENSE-APACHE), `core-foundation 0.9.4` (LICENSE-APACHE), `core-foundation-sys 0.8.7` (LICENSE-APACHE), `core-graphics-types 0.1.3` (LICENSE-APACHE), `crossbeam-deque 0.8.8` (LICENSE-APACHE), `crossbeam-epoch 0.9.21` (LICENSE-APACHE), `crossbeam-utils 0.8.23` (LICENSE-APACHE), `either 1.18.0` (LICENSE-APACHE), `equivalent 1.0.2` (LICENSE-APACHE), `errno 0.3.14` (LICENSE-APACHE), `fastrand 2.5.0` (LICENSE-APACHE), `find-msvc-tools 0.1.14` (LICENSE-APACHE), `fnv 1.0.7` (LICENSE-APACHE), `hashbrown 0.16.1` (LICENSE-APACHE), `hashbrown 0.17.1` (LICENSE-APACHE), `heck 0.5.0` (LICENSE-APACHE), `hermit-abi 0.5.3` (LICENSE-APACHE), `indexmap 2.14.2` (LICENSE-APACHE), `itertools 0.14.0` (LICENSE-APACHE), `js-sys 0.3.106` (LICENSE-APACHE), `linux-raw-sys 0.12.1` (LICENSE-APACHE), `log 0.4.34` (LICENSE-APACHE), `metal 0.29.0` (LICENSE-APACHE), `num 0.4.3` (LICENSE-APACHE), `num-bigint 0.4.8` (LICENSE-APACHE), `num-complex 0.4.6` (LICENSE-APACHE), `num-integer 0.1.47` (LICENSE-APACHE), `num-iter 0.1.46` (LICENSE-APACHE), `num-rational 0.4.2` (LICENSE-APACHE), `num-traits 0.2.19` (LICENSE-APACHE), `num_cpus 1.17.0` (LICENSE-APACHE), `once_cell 1.21.4` (LICENSE-APACHE), `pkg-config 0.3.34` (LICENSE-APACHE), `rayon 1.12.0` (LICENSE-APACHE), `rayon-cond 0.4.0` (LICENSE-APACHE), `rayon-core 1.13.0` (LICENSE-APACHE), `regex 1.13.1` (LICENSE-APACHE), `regex-automata 0.4.18` (LICENSE-APACHE), `regex-syntax 0.8.11` (LICENSE-APACHE), `rustix 1.1.5` (LICENSE-APACHE), `smallvec 1.16.2` (LICENSE-APACHE), `stable_deref_trait 1.2.1` (LICENSE-APACHE), `tempfile 3.27.0` (LICENSE-APACHE), `unicode-normalization-alignments 0.1.12` (LICENSE-APACHE), `unicode-segmentation 1.13.3` (LICENSE-APACHE), `unicode-width 0.2.2` (LICENSE-APACHE), `version_check 0.9.5` (LICENSE-APACHE), `wasip2 1.0.4+wasi-0.2.12` (LICENSE-APACHE), `wasm-bindgen 0.2.129` (LICENSE-APACHE), `wasm-bindgen-macro 0.2.129` (LICENSE-APACHE), `wasm-bindgen-macro-support 0.2.129` (LICENSE-APACHE), `wasm-bindgen-shared 0.2.129` (LICENSE-APACHE), `wit-bindgen 0.57.1` (LICENSE-APACHE).
+Identical file supplied by: `ahash 0.8.12` (LICENSE-APACHE), `autocfg 1.5.1` (LICENSE-APACHE), `base64 0.13.1` (LICENSE-APACHE), `bitflags 1.3.2` (LICENSE-APACHE), `bitflags 2.13.2` (LICENSE-APACHE), `bumpalo 3.20.3` (LICENSE-APACHE), `cc 1.5.1` (LICENSE-APACHE), `cfg-if 1.0.5` (LICENSE-APACHE), `core-foundation 0.9.4` (LICENSE-APACHE), `core-foundation-sys 0.8.7` (LICENSE-APACHE), `core-graphics-types 0.1.3` (LICENSE-APACHE), `crossbeam-deque 0.8.8` (LICENSE-APACHE), `crossbeam-epoch 0.9.21` (LICENSE-APACHE), `crossbeam-utils 0.8.23` (LICENSE-APACHE), `either 1.18.0` (LICENSE-APACHE), `equivalent 1.0.2` (LICENSE-APACHE), `errno 0.3.14` (LICENSE-APACHE), `fastrand 2.5.0` (LICENSE-APACHE), `find-msvc-tools 0.1.14` (LICENSE-APACHE), `fnv 1.0.7` (LICENSE-APACHE), `hashbrown 0.16.1` (LICENSE-APACHE), `hashbrown 0.17.1` (LICENSE-APACHE), `heck 0.5.0` (LICENSE-APACHE), `hermit-abi 0.5.3` (LICENSE-APACHE), `indexmap 2.14.2` (LICENSE-APACHE), `itertools 0.14.0` (LICENSE-APACHE), `js-sys 0.3.106` (LICENSE-APACHE), `linux-raw-sys 0.12.1` (LICENSE-APACHE), `log 0.4.34` (LICENSE-APACHE), `metal 0.29.0` (LICENSE-APACHE), `num 0.4.3` (LICENSE-APACHE), `num-bigint 0.4.8` (LICENSE-APACHE), `num-complex 0.4.6` (LICENSE-APACHE), `num-integer 0.1.47` (LICENSE-APACHE), `num-iter 0.1.46` (LICENSE-APACHE), `num-rational 0.4.2` (LICENSE-APACHE), `num-traits 0.2.19` (LICENSE-APACHE), `num_cpus 1.17.0` (LICENSE-APACHE), `once_cell 1.21.4` (LICENSE-APACHE), `pkg-config 0.3.34` (LICENSE-APACHE), `rayon 1.12.0` (LICENSE-APACHE), `rayon-cond 0.4.0` (LICENSE-APACHE), `rayon-core 1.13.0` (LICENSE-APACHE), `regex 1.13.1` (LICENSE-APACHE), `regex-automata 0.4.18` (LICENSE-APACHE), `regex-syntax 0.8.11` (LICENSE-APACHE), `rustix 1.1.5` (LICENSE-APACHE), `smallvec 1.16.2` (LICENSE-APACHE), `stable_deref_trait 1.2.1` (LICENSE-APACHE), `tempfile 3.27.0` (LICENSE-APACHE), `unicode-normalization-alignments 0.1.12` (LICENSE-APACHE), `unicode-segmentation 1.13.3` (LICENSE-APACHE), `unicode-width 0.2.2` (LICENSE-APACHE), `version_check 0.9.5` (LICENSE-APACHE), `wasip2 1.0.4+wasi-0.2.12` (LICENSE-APACHE), `wasm-bindgen 0.2.129` (LICENSE-APACHE), `wasm-bindgen-macro 0.2.129` (LICENSE-APACHE), `wasm-bindgen-macro-support 0.2.129` (LICENSE-APACHE), `wasm-bindgen-shared 0.2.129` (LICENSE-APACHE), `wit-bindgen 0.57.1` (LICENSE-APACHE), `cudarc 0.17.8` (LICENSE-APACHE), `cudarc 0.19.10` (LICENSE-APACHE).
 
 ```text
                               Apache License
@@ -438,7 +442,7 @@ limitations under the License.
 
 ### Upstream text 2: `LICENSE-MIT`
 
-Identical file supplied by: `ahash 0.8.12` (LICENSE-MIT).
+Identical file supplied by: `ahash 0.8.12` (LICENSE-MIT), `cudarc 0.17.8` (LICENSE-MIT), `cudarc 0.19.10` (LICENSE-MIT).
 
 ```text
 Copyright (c) 2018 Tom Kaitchuck
