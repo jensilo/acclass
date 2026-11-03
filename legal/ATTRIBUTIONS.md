@@ -18,8 +18,9 @@ Use does not imply endorsement by upstream creators.
 
 **Use and modifications:** acclass fine-tunes canonical ModernBERT-base revision
 `8949b909ec900327062f0ebf497f51aef5e6f0c8` as a nine-head shell-command and
-action-description classifier. The classifier, folded calibration temperature,
-thresholds and Q8/Q5 exports are acclass modifications, not unmodified upstream checkpoints. Measured results and limitations are in
+action-description classifier. The classifier, the calibration temperature built
+into its weights, the thresholds and the Q8/Q5 exports are acclass modifications, not
+unmodified upstream checkpoints. Measured results and limitations are in
 [`docs/model-card.md`](../docs/model-card.md).
 
 The upstream model remains subject to Apache 2.0. The copied code-repository

@@ -2,22 +2,21 @@
 
 ## Build from source
 
-Use Rust with Cargo and a C/C++ build toolchain. From the repository root:
+You need Rust and a C/C++ toolchain. From the repository root:
 
 ```sh
 cargo build --manifest-path engine/Cargo.toml --release --locked
 cargo test --manifest-path engine/Cargo.toml --locked
 ```
 
-The binary is `engine/target/release/acclass`. Tests use fixtures and do not
-need model weights.
+The binary is `engine/target/release/acclass`. The tests need no model weights.
 
-Running inference needs a model bundle from a release; see
-[architecture](architecture.md) for its files. Use one of these sources:
+Inference needs a model bundle from a release. See [architecture](architecture.md) for
+its files. Use one of these sources:
 
 - An existing installation: `--model ~/.acclass/model`.
-- Downloaded release assets. Put one model's files in a directory and remove the
-  prefix from their names:
+- Release assets. Put the files of one model in a folder and remove the prefix from
+  their names:
 
 ```sh
 mkdir model
@@ -25,30 +24,37 @@ for f in q8-*; do cp "$f" "model/${f#q8-}"; done
 engine/target/release/acclass serve --model model
 ```
 
-The installer targets Linux x86_64 with x86-64-v3, Linux aarch64 with ARM
-dot-product support, and macOS arm64. The checked-in Cargo flags require
-x86-64-v3 on x86_64 and enable dot-product instructions on aarch64. Building
-from source with these flags does not remove those CPU requirements. Review
-and change target flags for older CPUs; that configuration is not established
-by the prebuilt target list. No Intel macOS binary is provided. The engine
-uses Unix sockets and is not a native Windows program.
+## Platforms
 
-macOS builds enable Metal and need the Apple build tools and SDK. CUDA is
-optional: add `--features cuda` to build with a compatible CUDA toolchain.
-The standard build does not enable CUDA. See [device selection](architecture.md).
+| Platform | Prebuilt | Needs |
+| --- | --- | --- |
+| Linux x86_64 | Yes | x86-64-v3 CPU |
+| Linux aarch64 | Yes | ARM dot-product support |
+| macOS arm64 | Yes | Apple build tools and SDK, if you build from source |
+| macOS Intel | No | |
+| Windows | No | The engine uses Unix sockets. It is not a native Windows program. |
+
+`.cargo/config.toml` sets the same CPU requirements for source builds. To build for an
+older CPU, change these flags. Quantized CPU inference is then slower. There are no
+prebuilt binaries for older CPUs.
+
+macOS builds enable Metal. CUDA is optional. To use it, add `--features cuda` and use a
+compatible CUDA toolchain. See [device selection](architecture.md#devices).
 
 ## Verify a release
 
-Release assets are flat GitHub release files:
+A release has these files, with no folders:
 
-- `release.json`, `install.sh` and `SHA256SUMS`.
-- Engine archives: `acclass-VERSION-PLATFORM.tar.gz`, where `PLATFORM` is
-  `linux-x86_64`, `linux-aarch64` or `macos-arm64`.
-- Model files with the prefix `q8-`, `q5-` or `fp32-`.
+- `release.json` (the manifest), `install.sh` and `SHA256SUMS`
+- `acclass-VERSION-PLATFORM.tar.gz`, where `PLATFORM` is `linux-x86_64`,
+  `linux-aarch64` or `macos-arm64`
+- Model files with the prefix `q8-`, `q5-` or `fp32-`
 
-Download the assets and `SHA256SUMS` from the chosen release into one directory.
-Check the checksum file through a trusted channel before you rely on it. From
-that directory:
+To check downloaded files:
+
+1. Download the assets and `SHA256SUMS` into one folder.
+2. Check `SHA256SUMS` against a source other than this download.
+3. Run this command in the folder:
 
 ```sh
 sha256sum -c SHA256SUMS
@@ -56,15 +62,18 @@ sha256sum -c SHA256SUMS
 shasum -a 256 -c SHA256SUMS
 ```
 
-Read the installer before running it. Pin the SHA-256 of `release.json`
-from an independently trusted channel:
+To install with a pinned manifest:
+
+1. Read the installer.
+2. Get the SHA-256 hash of `release.json` from a source other than this download.
+3. Replace both placeholders and run this command. The URL must use HTTPS.
 
 ```sh
 sh install/install.sh --manifest HTTPS_RELEASE_JSON_URL --manifest-sha256 TRUSTED_SHA256
 ```
 
-Replace both placeholders. The URL must use HTTPS. The installer verifies
-the manifest pin and then checks each downloaded asset's declared size and
-SHA-256. A checksum from the same untrusted download does not establish
-publisher authenticity. See [installation](../README.md#install) and
-[notices](../legal/ATTRIBUTIONS.md).
+The installer compares the manifest with the hash. It then checks the size and hash of
+each asset against the manifest. A checksum from the same download does not prove who
+published the file.
+
+See [installation](../README.md#install) and the [notices](../legal/ATTRIBUTIONS.md).

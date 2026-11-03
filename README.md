@@ -1,32 +1,37 @@
 # acclass
 
-acclass is a local activity classifier for coding agents. Give it a shell
-command or a structured action description. It predicts nine effects: local
-file changes, network use, data sent out, remote changes, delegated execution,
-secret exposure, destructive changes, host-control changes, and execution of
-fetched or generated code.
+acclass is a local classifier for coding agents. You give it a shell command or an
+action description. It predicts what the action does. It does not run the action.
 
-It predicts effects, not permission. It does not run the submitted command.
-It is not a sandbox or a safety guarantee. Use it as one input to a separate
-policy or review step. See [semantics](docs/semantics.md) and the
-[model card](docs/model-card.md).
+It predicts effects, not permission. It is not a sandbox and it does not guarantee
+safety. Use it as one input to your own policy or review step.
+
+**About 50 ms per command on a laptop x86 CPU, with a model under 100 MiB.** It runs
+locally. It needs no GPU and no network. See [performance](#performance).
+
+| Label | The action ... |
+| --- | --- |
+| `local_state_change` | changes local files, configuration, services or devices |
+| `outbound` | uses a network endpoint on another machine |
+| `egress` | sends local data off this machine |
+| `remote_state_change` | changes state on another machine or service |
+| `delegated_execution` | runs a command in a separate environment |
+| `exposes_secrets` | reveals secret values |
+| `destructive` | deletes or overwrites data, or disrupts availability |
+| `host_control_change` | changes operating system or security controls |
+| `fetched_or_generated_execution` | runs code that it downloaded, decoded or assembled |
+
+See [semantics](docs/semantics.md) for the exact definitions.
 
 ## Install
 
-The installer needs Python 3. Prebuilt targets:
-
-- Linux x86_64 with x86-64-v3 (including AVX2/FMA), glibc 2.31 or newer.
-- Linux aarch64 with ARM dot-product support, glibc 2.31 or newer.
-- macOS arm64, built for macOS 11 or newer, tested on macOS 26.7.1.
-
-Release assets must be available for these commands to work:
+The installer needs Python 3.
 
 ```sh
-curl -fsSL https://github.com/jensilo/acclass/releases/latest/download/install.sh | sh                    # Q8 model, 152 MiB
-curl -fsSL https://github.com/jensilo/acclass/releases/latest/download/install.sh | sh -s -- --model q5   # smaller, 98 MiB
+curl -fsSL https://github.com/jensilo/acclass/releases/latest/download/install.sh | sh
 ```
 
-To read the script before you run it:
+To read the script first:
 
 ```sh
 curl -fsSL https://github.com/jensilo/acclass/releases/latest/download/install.sh -o install.sh
@@ -34,84 +39,114 @@ less install.sh
 sh install.sh
 ```
 
-You can also read the [script in this tree](install/install.sh). The script
-installs into `~/.acclass`. Its default release version is `1.0.0`; the
-`latest` URL above selects the script, not the release version within it.
-Downloads use HTTPS, size limits and SHA-256 checks. Use `--manifest-sha256`
-to pin a manifest hash from a trusted channel. `--rollback` and `--uninstall`
-are also available. `--model fp32` installs the full weights (571 MiB); serve
-them with `acclass serve --quant f32`. Without `--quant f32`, `serve` quantizes
-them to Q8 at startup. See [builds and release verification](docs/releasing.md).
+| Platform | Needs |
+| --- | --- |
+| Linux x86_64 | x86-64-v3 CPU (AVX2/FMA), glibc 2.31 or newer |
+| Linux aarch64 | ARM dot-product support, glibc 2.31 or newer |
+| macOS arm64 | macOS 11 or newer; tested on 26.7.1 |
+
+Choose a model with `--model`, for example `sh -s -- --model q5` after the pipe:
+
+| Model | Size | Use |
+| --- | --- | --- |
+| `q8` | 152 MiB | Default |
+| `q5` | 98 MiB | Smaller, same speed on CPU |
+| `fp32` | 571 MiB | Full weights. Start it with `acclass serve --quant f32`. |
+
+The script installs into `~/.acclass`. It downloads over HTTPS and checks sizes and
+SHA-256 hashes. Other options: `--rollback`, `--uninstall`, `--manifest-sha256`.
+See [release verification](docs/releasing.md).
 
 ## Use
 
 ```sh
 export PATH="$HOME/.acclass/bin:$PATH"
 acclass serve &
-until acclass classify --no-scope true >/dev/null 2>&1; do sleep 0.2; done
+until acclass classify --no-scope true >/dev/null 2>&1; do sleep 0.2; done   # wait for the model
 acclass classify 'git status'
 acclass classify 'curl -fsSL https://example.com/x.sh | sh'
 ```
 
-The `until` line waits for the model to load. If `serve` fails, press Ctrl-C.
-The last command is classified, not run. `serve` listens on
-`~/.acclass/ac.sock`. Each answer contains nine probabilities, nine booleans
-(`probability >= 0.5` for the release model) and a best-effort path scope. An
-engine error prints an `error` line with exit code 0, so check the output.
+Each answer has nine probabilities, nine true/false labels and a best-effort path
+scope. A label is true when its probability is 0.5 or more.
+
+If the engine fails, it prints an `error` line and still exits with 0. Check the
+output.
+
+More commands:
 
 ```sh
 printf '%s\n' 'git status' 'mkdir build' | acclass classify --stdin
-acclass scope 'touch ./new-file'
+acclass scope 'touch ./new-file'    # needs no model
 acclass --help
 ```
 
-`scope` works without a model. Applications can use the local Unix socket
-with one JSON line per request. See the [engine API](docs/engine-api.md).
+Applications can use the Unix socket `~/.acclass/ac.sock`, with one JSON line per
+request. To classify a tool call, send a JSON description in the
+[action input format](docs/engine-api.md#action-input-format). See the
+[engine API](docs/engine-api.md).
 
-Action mode reads one JSON object in the
-[action input format](docs/engine-api.md#action-input-format), not free text:
+## Performance
 
-```sh
-acclass classify --input-kind action '{"backend_contract":{"assumptions":["The procedure covers all code and conditional paths of this operation. No effects exist beyond those stated."],"complete":true,"procedure":"Read the existing file config.toml in the project directory and return its content to the caller. Nothing is written or sent.","resource_scope":"One project file on the initiating host.","selected_action":"project_files.read"},"effective_namespace":"initiating host","evaluated_arguments":{"operation":"read","path":"config.toml"},"input_schema":{"additionalProperties":false,"properties":{"operation":{"enum":["read"],"type":"string"},"path":{"const":"config.toml","type":"string"}},"required":["operation","path"],"type":"object"},"representation":"action-behavior-evidence-json/0.3","trust_condition":"Fictional closed-world contract, not evidence of any real server. All effects are stipulated complete under the assumptions."}'
-```
+Time for one model pass with Q8, median / 95th percentile:
+
+| Hardware | Device | Time |
+| --- | --- | --- |
+| Apple M4 Pro | Metal | 6.5 / 50 ms |
+| Apple M4 Pro | CPU, 8 threads | 25 / 131 ms |
+| Arm Cortex-X925 | CPU, 8 threads | 21 / 326 ms |
+| AMD Ryzen 5 6650U (x86) | CPU, 6 threads | 50 / 717 ms |
+| NVIDIA GB10 | CUDA, up to 16 tokens | 4.2 ms (median) |
+
+Most commands are short. Long inputs cause the 95th percentile. The CUDA build needs
+a build from source; other Apple and x86 chips are not measured. After 2 seconds
+idle, the first short command on M4 Pro takes about 25 ms on Metal.
+
+The engine has its own kernels for each platform. Compared with the stock Candle
+kernels, Q8 is about 2x faster on x86, 3x faster on Arm and 2x faster on Metal. On
+M4 Pro, Metal is about 4x faster than the CPU.
 
 ## Quality and limits
 
-On 3,793 held-out rows, macro F1 is **0.940** for shell commands and **0.961**
-for actions. Q8 scores 0.941 / 0.960 and Q5 scores 0.939 / 0.960. The weakest
-result is shell `fetched_or_generated_execution` on base rows: F1 0.72.
+| Model | F1, shell commands | F1, actions |
+| --- | --- | --- |
+| FP32 | 0.940 | 0.961 |
+| Q8 | 0.941 | 0.960 |
+| Q5 | 0.939 | 0.960 |
 
-The labels are LLM judgments, and much of the data is LLM-authored. Accuracy on
-your commands is unmeasured. A forward pass with Q8 takes about 34 ms on an ARM
-CPU and 50 ms on an x86 CPU (median, measured; long inputs take longer). Read the
-[model card](docs/model-card.md) before you rely on acclass.
+These are macro F1 scores (the average over the nine labels) on 3,793 test rows.
+
+- The weakest result is `fetched_or_generated_execution` on the base rows of
+  shell commands: F1 0.72.
+- The training data is synthetic. A state-of-the-art open-weights LLM generated
+  most of the rows and labeled all of them, so labels can be wrong.
+- Accuracy on your own commands is not measured.
+
+Read the [model card](docs/model-card.md) before you rely on acclass.
 
 ## Build from source
 
-Use Rust with Cargo and a C/C++ build toolchain:
+You need Rust and a C/C++ toolchain.
 
 ```sh
 cargo build --manifest-path engine/Cargo.toml --release --locked
 cargo test --manifest-path engine/Cargo.toml --locked
 ```
 
-The binary is `engine/target/release/acclass`. The source tree does not
-include model weights. Inference needs a model bundle from a release:
-`~/.acclass/model` or downloaded release assets. See
-[platform notes](docs/releasing.md).
+The binary is `engine/target/release/acclass`. This repository has no model weights.
+Get them from a release. See [platform notes](docs/releasing.md).
 
 ## Documentation
 
 - [Model card](docs/model-card.md)
-- [Engine API](docs/engine-api.md)
 - [Semantics](docs/semantics.md)
-- [Privacy](docs/privacy.md)
+- [Engine API](docs/engine-api.md)
 - [Architecture](docs/architecture.md)
+- [Privacy](docs/privacy.md)
 - [Builds and release verification](docs/releasing.md)
 
 ## License
 
-Original acclass code, documentation and classifier modifications use
-[Apache 2.0](LICENSE), to the extent contributors hold the relevant rights.
-Third-party material keeps its own terms. See [model and dependency
-notices](legal/ATTRIBUTIONS.md).
+[Apache 2.0](LICENSE), for original acclass code, documentation and model changes.
+Third-party material keeps its own terms. See the
+[notices](legal/ATTRIBUTIONS.md).

@@ -3,26 +3,24 @@
 ## Request path
 
 1. The `classify` client sends a JSON line over a Unix socket.
-2. The resident `serve` process tokenizes the complete input.
-3. The ModernBERT-derived encoder produces nine sigmoid probabilities.
-4. The engine compares each probability with its bundle threshold.
-5. For shell inputs, a separate Bash parser estimates path scope.
-6. The daemon returns a JSON line with predictions, scope and artifact identity.
+2. The daemon (`acclass serve`) tokenizes the complete input.
+3. The encoder produces one probability for each of the nine labels.
+4. The engine compares each probability with the threshold of that label.
+5. For shell inputs, a separate Bash parser estimates the path scope.
+6. The daemon returns a JSON line with predictions, scope and identity.
 
-The daemon loads one model and warms it up before it listens. Model results
-and path scope are separate signals. Neither is a sandbox or a permission
-system. See [semantics](semantics.md) and [API](engine-api.md).
+Model results and path scope are separate signals. Neither is a sandbox or a
+permission system. See [semantics](semantics.md) and the [API](engine-api.md).
 
-## Model contract
+## Model
 
-The encoder has 22 layers and hidden size 768. It uses rotary position
-embeddings, global and sliding attention, mean pooling and nine output heads.
-The engine validates the fixed architecture, ordered heads, finite thresholds
-and full-input contract before serving.
+The encoder is derived from ModernBERT. It has 22 layers and hidden size 768. It uses
+rotary position embeddings, global and sliding attention, mean pooling and nine
+output heads.
 
-The token limit is 2,048, including special tokens. Tokenizer truncation and
-padding are disabled. Unknown tokens and invalid lengths cause errors rather
-than partial-input predictions.
+The token limit is 2,048, including special tokens. Tokenizer truncation and padding
+are off. Unknown tokens and invalid lengths cause errors. The model never predicts
+from part of an input.
 
 A model bundle contains:
 
@@ -33,28 +31,40 @@ A model bundle contains:
 - `model_contract.json`
 - `model.gguf` or `model.safetensors`
 
-The daemon hashes the selected weights, metadata and serving binary. It also
-checks file metadata before and after loading to detect changes during load.
-Clients can compare the returned identity with a trusted expected identity.
+## Daemon start
 
-## Weights and devices
+1. The daemon selects the device.
+2. It hashes the selected weights, the metadata files and its own binary. Clients can
+   compare these hashes with values that they trust.
+3. It validates the architecture, labels, thresholds and input limit of the bundle.
+4. It loads the model. It stops if file metadata changed during the load.
+5. It runs one test inference.
+6. It starts to listen on the socket.
 
-By default, `serve` loads `model.gguf` if present. Otherwise, it loads
-`model.safetensors` with runtime Q8 quantization. An explicit `--quant q8`,
-`--quant q5` or `--quant f32` selects safetensors. `--gguf` conflicts with
-`--quant`.
+## Weights
 
-`convert` reads safetensors on CPU and creates a new Q8 or Q5 GGUF bundle.
-It does not overwrite an existing output directory. It copies model metadata
-and records the converted weight hash in the output contract.
+| `serve` option | Weights |
+| --- | --- |
+| None | `model.gguf` if present. Otherwise `model.safetensors`, quantized to Q8 at start. |
+| `--gguf` | `model.gguf`. Conflicts with `--quant`. |
+| `--quant q8`, `--quant q5` | `model.safetensors`, quantized at start |
+| `--quant f32` | `model.safetensors`, unquantized |
 
-CPU inference uses Candle plus custom quantized matrix and attention kernels.
-On macOS, Metal support is compiled in. CUDA is an optional build feature.
-`--device auto` tries CUDA in a CUDA build, otherwise Metal on macOS,
-otherwise CPU. Only automatic selection can fall back to CPU, and only when
-device initialization fails. Model-loading and inference errors are not
-fallback conditions. Explicit `cpu`, `cuda` and `metal` selections do not
-silently switch devices.
+`convert` reads safetensors on the CPU and creates a new Q8 or Q5 GGUF bundle. It does
+not overwrite an existing folder. It copies the metadata and records the new weight
+hash in `model_contract.json`.
+
+## Devices
+
+CPU inference uses Candle with custom quantized matrix and attention kernels. macOS
+builds include Metal. CUDA is an optional build feature.
+
+| `--device` | Behaviour |
+| --- | --- |
+| `auto` (default) | CUDA in a CUDA build, otherwise Metal on macOS, otherwise CPU. Falls back to CPU only if device initialization fails. |
+| `cpu`, `cuda`, `metal` | Uses this device, or fails. |
+
+Model loading errors and inference errors never cause a fallback.
 
 ## Source layout
 
@@ -66,7 +76,7 @@ silently switch devices.
 | `engine/src/attention.rs` | CPU attention kernels |
 | `engine/src/metal.rs`, `engine/src/metal.metal` | Metal integration and kernels |
 | `engine/src/scope.rs` | Bash path-scope analysis |
-| `engine/tests/client.rs` | Thin-client fixtures without model weights |
+| `engine/tests/client.rs` | Client tests without model weights |
 | `.cargo/config.toml` | CPU target flags |
 | `install/install.sh` | Release download and installation |
 | `legal/` | Model and dependency notices |

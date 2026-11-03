@@ -11,22 +11,24 @@ acclass scope [--cwd DIR] [--home DIR] [--stdin | CMD]
 acclass convert [--model DIR] [--out DIR] [--quant q8|q5]
 ```
 
-`--help` and `--version` do not load a model or connect to the daemon.
-The default model directory is `~/.acclass/model`. The default socket is
-`~/.acclass/ac.sock`. `classify` sends text; it does not execute that text.
-Quote a command so that your own shell does not expand it first.
+| Default | Value |
+| --- | --- |
+| Model folder | `~/.acclass/model` |
+| Socket | `~/.acclass/ac.sock` |
 
-`classify --stdin` reads one command per nonblank line. Each response is
-printed as one JSON line. Without `--stdin`, each command argument is a
-separate request. `scope --stdin` reads all standard input as one command.
-`scope` needs neither model weights nor a daemon.
+- `--help` and `--version` do not load a model or connect to the daemon. The daemon is
+  the `acclass serve` process.
+- `classify` sends text. It does not run the text. Quote a command so that your shell
+  does not expand it first.
+- `classify --stdin` reads one command from each nonblank line. It prints one JSON
+  line for each command.
+- Without `--stdin`, `classify` sends each argument as a separate request.
+- `scope --stdin` reads all input as one command. `scope` needs no model and no daemon.
+- After `--`, all arguments are commands: `acclass classify -- --version` classifies
+  the text `--version`.
+- `classify` also treats an unknown option as a command. Check the spelling.
 
-`--` makes all remaining arguments commands: `acclass classify -- --version`
-classifies the text `--version`. Unknown options are also treated as commands,
-so check their spelling.
-
-`serve` starts to accept requests only after it loads and warms up the model.
-To wait for it from a shell:
+`serve` accepts requests only after it loads and tests the model. To wait for it:
 
 ```sh
 acclass serve &
@@ -43,20 +45,20 @@ If `serve` fails, this loop does not stop. Press Ctrl-C and read the `serve` err
 | Invalid option, or no connection to the socket | 2 |
 | Lost connection, invalid or oversized reply, or oversized request | 1 |
 
-The daemon's `error` reply prints to standard output with exit code 0. Always
-check each output line for `error`.
+The CLI prints an `error` reply to standard output and exits with 0. Check each output
+line for `error`.
 
 ### Threads
 
 On macOS, the default is the performance cores, at most 8. On other systems, set
-`RAYON_NUM_THREADS` to the number of physical or performance cores. Set
-`CANDLE_NUM_THREADS` to the same number. Otherwise, a lower `RAYON_NUM_THREADS`,
+`RAYON_NUM_THREADS` to the number of physical or performance cores, and set
+`CANDLE_NUM_THREADS` to the same number. Without this, a lower `RAYON_NUM_THREADS`,
 `taskset` or a shared machine can oversubscribe the cores.
 
 ## Socket protocol
 
-The transport is newline-delimited UTF-8 JSON over a Unix socket. A connection
-can carry multiple requests. End each request with a newline:
+The protocol uses UTF-8 JSON lines over a Unix socket. One connection can carry many
+requests. End each request with a newline:
 
 ```json
 {"cmd":"git status","cwd":"/project","home":"/user","input_kind":"shell","analyze_scope":true}
@@ -64,28 +66,29 @@ can carry multiple requests. End each request with a newline:
 
 | Field | Meaning |
 | --- | --- |
-| `cmd` | Required string to classify |
-| `cwd` | Scope working directory; defaults to the daemon's working directory |
-| `home` | Scope home directory; defaults to the daemon's `$HOME` |
-| `input_kind` | Use `action` to disable shell scope; otherwise shell scope is used |
-| `analyze_scope` | Set to `false` to disable scope analysis |
+| `cmd` | Required. The string to classify. |
+| `cwd` | Working directory for scope. Default: the daemon's working directory. |
+| `home` | Home directory for scope. Default: the daemon's `$HOME`. |
+| `input_kind` | `action` turns off scope. All other values use shell scope. |
+| `analyze_scope` | `false` turns off scope. |
 
-Use absolute `cwd` and `home` paths. The CLI sends its own working directory
-and home directory. Direct socket clients must send them if daemon defaults
-are not suitable. `input_kind` does not select a different model or rewrite
-the submitted text. The CLI accepts only `shell` or `action`. Only the exact
-`cmd` string is a model feature; `cwd` and `home` affect scope only.
+- Use absolute `cwd` and `home` paths. The CLI sends its own values. Socket clients
+  must send them if the daemon's defaults are wrong for the request.
+- The model reads only the exact `cmd` string. `cwd` and `home` affect scope only.
+- `input_kind` does not select another model or change the text.
+- The CLI accepts only `shell` or `action`.
 
 ## Action input format
 
-For `input_kind: "action"`, `cmd` is one JSON object as a string. The model was
-trained on stipulated contracts in this format. Other text can produce a result,
-but the evaluation does not apply to it. The engine does not validate the format.
+For `input_kind: "action"`, `cmd` is one JSON object as a string. We trained the model
+on invented tool descriptions in this format. Each description states all effects of
+its tool. Other text can produce a result, but the evaluation does not apply to it. The
+engine does not validate the format.
 
 | Field | Meaning |
 | --- | --- |
 | `representation` | Always `action-behavior-evidence-json/0.3` |
-| `trust_condition` | Statement that the contract is stipulated, not a backend attestation |
+| `trust_condition` | States that the description is an assumption, not a proof of what a backend does |
 | `effective_namespace` | Where effects occur, for example `initiating host`, `local container` or `nonlocal passive service` |
 | `input_schema` | JSON Schema of the action's arguments |
 | `evaluated_arguments` | The complete argument values of this call |
@@ -97,7 +100,7 @@ but the evaluation does not apply to it. The engine does not validate the format
 
 Encode the object as compact UTF-8 JSON with sorted keys, as this Python call does:
 `json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))`.
-Do not append labels or context. Example, with line breaks for this page only:
+Do not add labels or context. This example has line breaks for this page only:
 
 ```json
 {"backend_contract":{"assumptions":["The procedure covers all code and conditional paths of this operation. No effects exist beyond those stated."],
@@ -109,62 +112,72 @@ Do not append labels or context. Example, with line breaks for this page only:
 "trust_condition":"Fictional closed-world contract, not evidence of any real server. All effects are stipulated complete under the assumptions."}
 ```
 
-Real tool metadata does not attest what a backend does. Treat predictions for
-real tool calls as hints that need review. See the [limits](model-card.md#limits).
+Real tool descriptions can be wrong or incomplete. Treat predictions for real tool
+calls as hints that need review. See the [limits](model-card.md#limits).
 
 ## Classification response
 
 | Field | Meaning |
 | --- | --- |
-| `probs` | Nine head names mapped to probabilities |
-| `preds` | The same head names mapped to booleans, using bundle thresholds |
-| `ms` | Model forward-pass time in milliseconds; not end-to-end latency |
-| `token_count` | Token count including special tokens |
-| `token_ids` | Tokenized input; treat it as sensitive input data |
-| `input_complete` | `true` after successful full-input classification |
-| `scope` | Detected categories: `cwd`, `tmp`, `home`, `system`, `other`, or `none` |
+| `probs` | Nine label names mapped to probabilities |
+| `preds` | The same names mapped to booleans, using the bundle's thresholds |
+| `ms` | Model time in milliseconds, without tokenizer, scope and socket time |
+| `token_count` | Number of tokens, including special tokens |
+| `token_ids` | Tokenized input. Treat it as sensitive input data. |
+| `input_complete` | `true` after the model read the full input |
+| `scope` | Detected categories: `cwd`, `tmp`, `home`, `system`, `other` or `none` |
 | `paths` | `inside` and `outside` path arrays |
-| `scope_complete` | Whether the detected path inventory is resolved and not truncated |
-| `identity` | Loaded artifact and binary identity |
+| `scope_complete` | `true` if the detected paths are resolved and the list is not truncated |
+| `identity` | Hashes of the loaded files and the binary |
 
-See [semantics](semantics.md) for the head names and scope limits.
-When scope is disabled, the engine returns `scope: ["none"]`, empty path
-arrays, and `scope_complete: true`. These values do not mean the input has
-no file effects.
+See [semantics](semantics.md) for the labels and the scope limits.
 
-`identity` contains protocol `acclass-daemon/1`, `loading_mode`, an
-`artifacts` map of SHA-256 hashes for the loaded weights and model metadata,
-and `binary_sha256`. Loading modes are `gguf`, `q8-runtime`, `q5-runtime`
-and `f32`. Compare identity with a trusted expected value when required;
-identity alone does not establish trust.
+If scope is off, the response has `scope: ["none"]`, empty path arrays and
+`scope_complete: true`. These values do not mean that the input has no file effects.
 
-## Readiness and errors
+`identity` contains:
+
+| Field | Meaning |
+| --- | --- |
+| `protocol` | `acclass-daemon/1` |
+| `loading_mode` | `gguf`, `q8-runtime`, `q5-runtime` or `f32` |
+| `artifacts` | SHA-256 hashes of the loaded weights and model metadata |
+| `binary_sha256` | SHA-256 hash of the daemon binary |
+
+Compare `identity` with a value that you trust. The hashes alone do not show that the
+files are trustworthy.
+
+## Readiness
 
 ```json
 {"ping":true}
 ```
 
 The reply contains `ready: true`, the ordered `heads`,
-`context_limit_inclusive: 2048`, and `identity`. Readiness is returned by a
-daemon that has loaded and warmed up its model.
+`context_limit_inclusive: 2048` and `identity`. The daemon listens only after it loads
+and tests its model.
 
-Errors use an `error` string and include `identity` in daemon replies:
+## Errors
+
+An error reply has an `error` string:
 
 ```json
 {"error":"missing field 'cmd'"}
 ```
 
-The example shows the error field only. Do not treat an error or a lost
-connection as a negative prediction. The CLI reports a lost connection, invalid
-response or oversized response as a failure. It prints an `error` reply with
-[exit code 0](#exit-codes-of-classify).
+Most error replies also contain `identity`. Replies to an oversized line or to invalid
+UTF-8 do not.
 
-The daemon limits a request line to 256 KiB and allows at most 64 active
-connections. It sets read and write timeouts to 30 seconds. Oversized lines
-are rejected; if the remaining line cannot be drained within the bound,
-the connection is closed. Invalid UTF-8, invalid JSON, incompatible model
-metadata, unknown tokens and inputs above 2,048 tokens are not silently
-clipped into valid classifications.
+Do not treat an error or a lost connection as a negative prediction.
+
+| Condition | Daemon behaviour |
+| --- | --- |
+| Line above 256 KiB | Replies with an error. Closes the connection if it cannot read to the end of the line within its limit. |
+| Invalid UTF-8, invalid JSON | Replies with an error. |
+| Unknown token, above 2,048 tokens | Replies with an error. It never cuts the input. |
+| More than 64 connections | Closes the new connection. |
+| No data or no write progress for 30 seconds | Read or write timeout. |
+| Incompatible model metadata | Refuses to start. |
 
 ## Python client
 
@@ -181,9 +194,13 @@ with socket.socket(socket.AF_UNIX) as client:
         print(result["probs"])
 ```
 
-Production clients must set time and byte limits, require all nine valid labels
-and the full-input fields, and check the model identity. Decisions, permissions,
-policy, context, privacy and OS isolation belong to the caller, not the classifier.
+A production client must:
 
-See [privacy](privacy.md) for socket permissions and data handling, and
-[architecture](architecture.md) for model loading and device selection.
+- set time and byte limits
+- require all nine valid labels and the full-input fields
+- check the model identity
+
+The caller owns decisions, permissions, policy, context, privacy and OS isolation.
+
+See [privacy](privacy.md) for socket permissions and
+[architecture](architecture.md) for model loading and devices.

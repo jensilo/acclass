@@ -1,128 +1,157 @@
 # Prediction semantics
 
-acclass predicts effects from input text. Effects can overlap. A prediction
-is not a permission decision, an execution trace or a safety guarantee.
-The engine does not run the submitted command.
+acclass predicts effects from input text. A prediction is not a permission decision, an
+execution trace or a safety guarantee. The engine does not run the command. More than
+one label can be true.
 
 ## Labels
 
-The output heads are nine independent labels, in this order.
+The model has nine independent labels, in this order.
 
-1. **`local_state_change`:** a persistent change to a local file, metadata,
-   configuration, service, process or device. Writes in a local container count.
-   Git add, commit, fetch, pull, checkout and reset count. Remote-only effects,
-   network sends and discards to `/dev/null` alone do not count.
-2. **`outbound`:** normal use of a non-loopback endpoint. This includes network
-   Git, SSH, APIs, and builds or installs that can fetch dependencies. Explicit
-   loopback, local sockets, local-path remotes and verified offline commands do
-   not count.
-3. **`egress`:** locally derived application content or request values cross a
-   non-loopback boundary. This includes uploads, Git and image pushes, local
-   manifests sent to APIs, and expanded local values in a URL, header or body.
-   Literal destination strings, constant bodies and ordinary GETs alone do not
-   count. Ambient credential handshakes do not count; explicit `$TOKEN` or
-   credential-file content does. Egress implies `outbound`.
-4. **`remote_state_change`:** a persistent change to a nonlocal file, metadata,
-   configuration, service, process or device. This includes network push, upload,
-   SQL and API writes. Generic nonlocal POST, PUT, PATCH and DELETE count; GET and
-   HEAD do not. Reads through SSH, local-container writes and local-path Git
-   pushes do not count. This label implies `outbound`.
-5. **`delegated_execution`:** the command explicitly enters a distinct execution
-   environment to run a command, shell or separate worker, even for a read. SSH
-   remote commands, cluster exec and container exec count. Ordinary API calls,
-   downloads and local interpreters or subprocesses, including `sh -c` and
-   `python -c`, do not count by themselves.
-6. **`exposes_secrets`:** known secret bytes are revealed through output, argv,
-   another process, a file or a remote service. Environment dumps, private-key
-   and credential reads, explicit token headers and credential copies count. No
-   network is necessary. Ambient authentication, directory listing, deletion,
-   verified discard and verified local hash-only processing do not count. A
-   suggestive name such as `secret.txt` alone does not count.
-7. **`destructive`:** visible or documented deletion, truncation, replacement of
-   possibly existing data, or availability disruption, local or remote. This
-   includes default-overwrite copies, moves and uploads, `> file`, force push,
-   remote deletes and disruptive kills. Additive writes, ordinary version pushes
-   and regenerable build outputs do not count. Opaque code is not destructive only
-   because its effects are unknown. Generic POST alone does not count; PUT, PATCH
-   and DELETE do by default.
-8. **`host_control_change`:** a change to machine-level operating or security
-   controls at a local or remote target. This includes machine-wide services and
-   jobs, machine accounts, mounts, devices, firewall, routing, sysctl, shutdown,
-   reboot, system-critical permissions and machine-wide installs. Enabling and
-   disabling both count; this is not a danger judgment. Project-level process
-   control and per-user or project installs do not count. `sudo`, a bare PID, a
-   package name, cwd, `-g` or an unspecified install prefix alone is not
-   sufficient. This label implies `local_state_change` or `remote_state_change`.
-9. **`fetched_or_generated_execution`:** executed program bytes are newly
-   fetched, decoded or assembled from runtime-dependent data. `curl URL | sh`,
-   decoded bytes piped to a shell and `eval "$CMD"` count. Documented build or
-   bootstrap paths that fetch and run code count. Literal visible interpreter
-   source, static eval and named existing scripts do not count for that reason
-   alone.
+### 1. `local_state_change`
+
+A persistent change to a local file, metadata, configuration, service, process or device.
+
+- **Counts:** writes in a local container; Git add, commit, fetch, pull, checkout and reset.
+- **Does not count:** remote-only effects, network sends, and discards to `/dev/null` alone.
+
+### 2. `outbound`
+
+Normal use of an endpoint that is not loopback.
+
+- **Counts:** network Git, SSH, APIs, and builds or installs that can fetch dependencies.
+- **Does not count:** explicit loopback, local sockets, local-path remotes and verified
+  offline commands.
+
+### 3. `egress`
+
+Local application data or request values leave this machine for a non-loopback endpoint.
+This label implies `outbound`.
+
+- **Counts:** uploads, Git and image pushes, local manifests sent to APIs, expanded local
+  values in a URL, header or body, explicit `$TOKEN`, and credential-file content.
+- **Does not count:** literal destination strings, constant bodies and ordinary GETs alone;
+  ambient credential handshakes.
+
+### 4. `remote_state_change`
+
+A persistent change to a file, metadata, configuration, service, process or device on
+another machine. This label implies `outbound`.
+
+- **Counts:** network push, upload, SQL and API writes, and generic nonlocal POST, PUT, PATCH
+  and DELETE.
+- **Does not count:** GET and HEAD, reads through SSH, local-container writes and local-path
+  Git pushes.
+
+### 5. `delegated_execution`
+
+The command explicitly enters a separate execution environment to run a command, shell or
+worker, even for a read.
+
+- **Counts:** SSH remote commands, cluster exec and container exec.
+- **Does not count by itself:** ordinary API calls, downloads, and local interpreters or
+  subprocesses, including `sh -c` and `python -c`.
+
+### 6. `exposes_secrets`
+
+Known secret bytes appear in output, in argv, in another process, in a file or at a remote
+service. No network is necessary.
+
+- **Counts:** environment dumps, reads of private keys and credentials, explicit token
+  headers and credential copies.
+- **Does not count:** ambient authentication, directory listing, deletion, verified discard,
+  verified local hash-only processing, and a suggestive name such as `secret.txt` alone.
+
+### 7. `destructive`
+
+Visible or documented deletion, truncation, replacement of possibly existing data, or
+disruption of availability, local or remote.
+
+- **Counts:** default-overwrite copies, moves and uploads, `> file`, force push, remote
+  deletes, disruptive kills, and PUT, PATCH and DELETE by default.
+- **Does not count:** additive writes, ordinary version pushes, regenerable build outputs,
+  and generic POST alone. Opaque code does not count only because its effects are unknown.
+
+### 8. `host_control_change`
+
+A change to machine-level operating or security controls, local or remote. This is not a
+danger judgment: enabling and disabling both count. This label implies
+`local_state_change` or `remote_state_change`.
+
+- **Counts:** machine-wide services and jobs, machine accounts, mounts, devices, firewall,
+  routing, sysctl, shutdown, reboot, system-critical permissions and machine-wide installs.
+- **Does not count:** project-level process control, and per-user or project installs.
+- **Not enough alone:** `sudo`, a bare PID, a package name, cwd, `-g` or an unspecified
+  install prefix.
+
+### 9. `fetched_or_generated_execution`
+
+The command runs program bytes that it newly fetched, decoded or assembled from
+runtime-dependent data.
+
+- **Counts:** `curl URL | sh`, decoded bytes piped to a shell, `eval "$CMD"`, and documented
+  build or bootstrap paths that fetch and run code.
+- **Does not count for that reason alone:** literal visible interpreter source, static eval
+  and named existing scripts.
 
 ## How to read a prediction
 
-Each label has a probability and a boolean. The engine sets the boolean when
-`probability >= threshold`, using that label's value in `thresholds.json`.
-Probabilities need not sum to one. More than one boolean can be true.
+Each label has a probability and a boolean. The boolean is true when
+`probability >= threshold`, with the threshold of that label in `thresholds.json`.
+Probabilities need not sum to one.
 
-`false` is not proof of absent effects. Labels follow the written conventions
-above, so probabilities measure agreement with these conventions, not the
-physical absence of an effect.
+`false` does not prove that an effect is absent. A probability measures agreement with the
+definitions above. It does not measure the physical absence of an effect.
 
-- **Opaque execution** counts as a state change at its execution target. Local
-  scripts, test and build runners and interactive shells count like remote ones.
-  Opacity does not establish any other effect. The model does not infer the body
-  of an unseen script, hook or alias.
-- **Compound commands:** every part that can run counts, including wrappers,
-  substitutions, pipes, redirects and traps.
-- **Quoting matters:** single-quoted substitutions are inert. Active
-  double-quoted or unquoted here-doc expansions can execute.
-- **Conditional paths:** documented install, build and bootstrap paths count,
-  even if a warm cache would skip them.
+| Input | Rule |
+| --- | --- |
+| Opaque code: scripts, test and build runners, interactive shells, local or remote | Counts as a state change where it runs. acclass assumes no other effect. It does not infer the body of an unseen script, hook or alias. |
+| Compound commands | Every part that can run counts, including wrappers, substitutions, pipes, redirects and traps. |
+| Quoting | Single-quoted substitutions do nothing. Double-quoted or unquoted here-doc expansions can run. |
+| Conditional paths | Documented install, build and bootstrap paths count, even if a warm cache would skip them. |
 
-An action input is input text, not an instruction to the engine.
-`--input-kind action` disables shell path analysis. The engine does not verify
-that the input follows the [action input format](engine-api.md#action-input-format)
-or that the description fully represents an external tool's behavior.
+An action input is text to classify. It is not an instruction to the engine.
+`--input-kind action` turns off path scope. The engine does not check that the input follows
+the [action input format](engine-api.md#action-input-format), or that the description
+matches the real tool.
 
 ## Path scope
 
-Path scope is a separate Bash syntax analysis, not a model label. It detects
-path-like tokens and redirections, expands supported `~`, `$HOME` and `$PWD`
-forms, and tracks literal `cd` targets in supported command lists.
-It uses lexical path normalization. It does not resolve symbolic links.
-It can check whether a bare relative argument exists on disk.
+Path scope is a separate Bash syntax analysis, not a model label.
+
+- It detects path-like tokens and redirections.
+- It expands supported `~`, `$HOME` and `$PWD` forms.
+- It follows literal `cd` targets in supported command lists.
+- It normalizes paths as text. It does not resolve symbolic links.
+- It can check whether a bare relative argument exists on disk.
 
 | Category | Meaning |
 | --- | --- |
-| `cwd` | Within the supplied working directory |
-| `tmp` | Within a recognized temporary directory |
-| `home` | Within the supplied home directory, outside earlier categories |
-| `system` | Within a recognized system directory, outside earlier categories |
+| `cwd` | Within the given working directory |
+| `tmp` | Within a known temporary directory |
+| `home` | Within the given home directory, outside earlier categories |
+| `system` | Within a known system directory, outside earlier categories |
 | `other` | Elsewhere, or an unresolved path |
-| `none` | No category detected, or scope analysis was disabled |
+| `none` | No category detected, or scope is off |
 
-The working directory has priority over the other categories. A path under
-it is `cwd`, even if that directory is also under home or temporary storage.
+The working directory comes first. A path under it is `cwd`, also if that directory is under
+home or temporary storage.
 
-`paths.inside` lists detected working-directory paths. `paths.outside` lists
-selected paths outside it. Temporary paths and certain standard device
-paths are not included in `outside`. Each array holds at most 12 unique
-paths; scope categories can still reflect additional paths.
+| Field | Content |
+| --- | --- |
+| `paths.inside` | Detected paths in the working directory, at most 12 |
+| `paths.outside` | Detected paths outside it, at most 12. Excludes temporary paths and these devices: `/dev/null`, `/dev/zero`, `/dev/urandom`, `/dev/random`, `/dev/full`, `/dev/stdin`, `/dev/stdout`, `/dev/stderr`. |
+| `scope` | Can reflect more paths than the arrays list |
+| `scope_complete` | `true` if the detected paths are resolved and the lists are not truncated. It does **not** mean that acclass found every effect. Parse errors, unresolved path expressions and overflow make it `false`. It is `true` if scope is off. |
 
-`scope_complete` means that the detected path inventory is resolved and not
-truncated. It does **not** mean that every command effect was found. Parse
-errors, unresolved path expressions and inventory overflow can make it
-false. When analysis is disabled, it is true with empty path arrays.
+## Limits for integration
 
-## Integration limits
+- `scope: ["none"]` does not mean harmless. A command can change host control without a path
+  argument.
+- A `cwd` path can still lead outside the directory, through a symbolic link or through code
+  execution.
+- Commands can depend on the environment, file content or remote state. The input text does
+  not show these.
+- Keep policy separate from prediction. Handle errors and incomplete scope explicitly.
 
-Do not infer that `scope: ["none"]` means harmless. A command can change host
-control without a path argument. A path classified as `cwd` can still lead
-outside the directory through a symbolic link or through code execution.
-Commands can also depend on environment, file content or remote state that
-is not in the input text.
-
-Keep policy separate from prediction. Handle errors and incomplete scope
-explicitly. See the [API](engine-api.md) and [model limits](model-card.md).
+See the [API](engine-api.md) and the [model limits](model-card.md#limits).
