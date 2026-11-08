@@ -10,7 +10,7 @@ safety. Use it as one input to your own policy or review step.
 a model under 100 MiB.** It runs locally. It needs no GPU and no network. See
 [performance](#performance).
 
-[Try it in your browser](https://jensilo.github.io/acclass/). The model weights are also on
+[Try it in your browser](https://jensheise.com/acclass/). The model weights are also on
 [Hugging Face](https://huggingface.co/jensilo/acclass).
 
 | Label | The action ... |
