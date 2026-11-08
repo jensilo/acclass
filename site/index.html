@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>acclass: what will this command do?</title>
+<meta name="description" content="acclass is a local classifier for coding agents. It predicts what a shell command does, before it runs. Try it in your browser.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%232b3a55%22/%3E%3Ctext x=%2216%22 y=%2222%22 font-family=%22monospace%22 font-size=%2216%22 text-anchor=%22middle%22 fill=%22%23e6ecf5%22%3E$_%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+<main>
+
+<section class="hero">
+  <div class="wordmark reveal">acclass</div>
+  <h1 class="reveal">Under 100 MiB, ~50 ms on a mid-tier laptop CPU.</h1>
+  <p class="tagline reveal">A small model that reads a shell command and says what it would do, before it runs.</p>
+  <a class="down" href="#what" aria-label="scroll down"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9l7 7 7-7"/></svg></a>
+</section>
+
+<section id="what">
+  <div class="chapter reveal">01 / What it is</div>
+  <h2 class="reveal">Size, quality, speed</h2>
+  <p class="reveal">Three formats of the same model. Scores are on 3,793 test rows. A flip is a decision that differs from FP32. There are 34,137 decisions.</p>
+  <div class="tablewrap reveal">
+    <table>
+      <thead><tr><th>Format</th><th>Size</th><th>Macro F1 shell / action</th><th>Flips vs FP32</th></tr></thead>
+      <tbody>
+        <tr><td>FP32</td><td>570.7 MiB</td><td>0.940 / 0.961</td><td>-</td></tr>
+        <tr><td>Q8_0</td><td>151.7 MiB</td><td>0.941 / 0.960</td><td>19 (0.06%)</td></tr>
+        <tr><td>Q5_0</td><td>98.2 MiB</td><td>0.939 / 0.960</td><td>85 (0.25%)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="reveal">Q5 is under 100 MiB. It changes 0.25% of decisions.</p>
+  <p class="reveal">One model pass takes 50 ms (median) on a Ryzen 5 6650U CPU. It takes 4.2 ms on a DGX Spark with CUDA. See the speed scale below.</p>
+  <p class="reveal">v1.0.0 runs on Linux x86_64 and aarch64, macOS arm64, and CUDA on the DGX Spark. It needs no GPU and no network.</p>
+</section>
+
+<section id="labels">
+  <div class="chapter reveal">02 / The nine labels</div>
+  <h2 class="reveal">Nine labels</h2>
+  <p class="reveal">The model gives one probability per label. A label counts as true at 0.5 or more.</p>
+  <div class="labels" id="label-grid"></div>
+</section>
+
+<section id="try">
+  <div class="chapter reveal">03 / Try it</div>
+  <h2 class="reveal">Try it</h2>
+  <p class="reveal">Pick a command or type your own. The model runs in this tab.</p>
+
+  <div id="gate" class="card reveal">
+    <h3>Download the model?</h3>
+    <p>About <span id="mib"></span> MiB, once. It runs in this tab on the CPU (WebAssembly). This is bigger than the 98 MiB Q5 release. The browser runtime cannot use 5-bit weights, and its 8-bit path was slower in my tests. So this page uses 16-bit weights.</p>
+    <p id="cachenote">The browser keeps the model in its cache, so the next visit does not download it again.</p>
+    <button id="go" type="button">Download and start</button>
+  </div>
+
+  <div id="loading" class="card hidden" aria-live="polite">
+    <div id="loadmsg">Starting...</div>
+    <div class="bar"><i id="loadbar"></i></div>
+  </div>
+  <p id="loaderr" class="error" role="alert"></p>
+
+  <div class="callout reveal" role="note">
+    <h3>The browser is slow</h3>
+    <p>This page runs the model in the browser with ONNX Runtime Web. It is much slower than the native acclass engine. On an M1 Pro, a short command takes about 75 ms here. The engine takes about 6.5 ms with Metal and 25 ms on the CPU of an M4 Pro.</p>
+    <p>Install the engine for real speed.</p>
+  </div>
+
+  <div class="reveal">
+    <div class="chips" id="chips" role="group" aria-label="example commands"></div>
+    <label class="visually" for="cmd">command</label>
+    <input id="cmd" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type a shell command">
+
+    <div class="stats" id="stats" aria-live="polite">
+      <span>Tokens <b id="s-tok">-</b></span>
+      <span>Model <b id="s-ms">-</b></span>
+      <span>Median of last <span id="s-n">0</span> <b id="s-med">-</b></span>
+      <span>Min <b id="s-min">-</b></span>
+      <span>Run <b>WASM · fp16</b></span>
+    </div>
+    <p class="small">Longer commands have more tokens and take longer.</p>
+    <p id="msg" class="small" aria-live="polite"></p>
+
+    <div class="rows" id="rows" aria-live="polite"></div>
+    <ul class="facts" id="facts" aria-live="polite"></ul>
+    <p class="small">The probabilities are calibrated (T = 1.76). On the test data, 80% means about 8 in 10 similar commands have that effect. The test data is synthetic, so your commands can differ.</p>
+  </div>
+
+  <div class="card reveal">
+    <h3>Speed scale</h3>
+    <p class="small">One model pass, Q8. Log scale, 1 ms to 1000 ms. The markers are medians for short commands.</p>
+    <div class="scale" id="scale"></div>
+    <p class="small">Time grows with command length. Most commands are short. Long inputs cause the 95th percentile: 50 ms median but 717 ms p95 on the Ryzen, 6.5 ms but 50 ms on M4 Pro Metal. A maximum-length input (2,048 tokens) takes about 85 ms on the DGX Spark.</p>
+    <p class="small">Your marker comes from the browser build, not the engine. Do not compare it with the markers.</p>
+  </div>
+</section>
+
+<section id="install">
+  <div class="chapter reveal">04 / Install</div>
+  <h2 class="reveal">Install</h2>
+  <p class="reveal">The installer needs Python 3.</p>
+  <div class="code reveal">
+    <pre id="install-cmd">curl -fsSL https://github.com/jensilo/acclass/releases/latest/download/install.sh | sh</pre>
+    <button type="button" class="ghost" data-copy="install-cmd">Copy</button>
+  </div>
+  <p class="reveal"><a href="https://github.com/jensilo/acclass">Source on GitHub</a> · <a href="https://github.com/jensilo/acclass/releases">releases</a> (v1.0.0) · <a href="https://huggingface.co/jensilo/acclass">weights on Hugging Face</a></p>
+  <p class="reveal">The <a href="https://github.com/jensilo/acclass/blob/main/docs/model-card.md">model card</a> lists the limits.</p>
+</section>
+
+<section id="pi">
+  <div class="chapter reveal">05 / Pi users</div>
+  <h2 class="reveal">Using Pi?</h2>
+  <p class="reveal">There is an extension: <a href="https://github.com/jensilo/pi-activity">pi-activity</a>.</p>
+  <div class="code reveal">
+    <pre id="pi-cmd">pi install git:github.com/jensilo/pi-activity</pre>
+    <button type="button" class="ghost" data-copy="pi-cmd">Copy</button>
+  </div>
+</section>
+
+<footer class="reveal">
+  <p>acclass is licensed under Apache 2.0. It is derived from ModernBERT (Answer.AI, Apache 2.0).</p>
+  <p>acclass is not a sandbox. It reads the text of a command and can be wrong.</p>
+</footer>
+
+</main>
+</body>
+</html>
