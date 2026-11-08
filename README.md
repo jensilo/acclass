@@ -93,6 +93,17 @@ request. To classify a tool call, send a JSON description in the
 [action input format](docs/engine-api.md#action-input-format). See the
 [engine API](docs/engine-api.md).
 
+### Pi
+
+For the Pi coding agent, the [pi-activity](https://github.com/jensilo/pi-activity) extension
+uses acclass to check tool calls. It installs acclass on first start, after it asks you.
+
+```sh
+pi install npm:@jensilo/pi-activity@1.0.1
+# or
+pi install git:github.com/jensilo/pi-activity@v1.0.1
+```
+
 ## Performance
 
 Time for one model pass with Q8, median / 95th percentile:
